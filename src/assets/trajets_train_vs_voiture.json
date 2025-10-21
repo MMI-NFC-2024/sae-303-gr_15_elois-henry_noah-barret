@@ -1,0 +1,100 @@
+[
+  {
+    "route": "Paris-Lyon",
+    "distance_km": 465,
+    "mode": "train",
+    "time_h": 1.9,
+    "cost_eur": 55
+  },
+  {
+    "route": "Paris-Lyon",
+    "distance_km": 465,
+    "mode": "car",
+    "time_h": 4.5,
+    "cost_eur": 115
+  },
+  {
+    "route": "Paris-Bordeaux",
+    "distance_km": 584,
+    "mode": "train",
+    "time_h": 2.1,
+    "cost_eur": 60
+  },
+  {
+    "route": "Paris-Bordeaux",
+    "distance_km": 584,
+    "mode": "car",
+    "time_h": 6.0,
+    "cost_eur": 135
+  },
+  {
+    "route": "Paris-Marseille",
+    "distance_km": 775,
+    "mode": "train",
+    "time_h": 3.0,
+    "cost_eur": 75
+  },
+  {
+    "route": "Paris-Marseille",
+    "distance_km": 775,
+    "mode": "car",
+    "time_h": 7.5,
+    "cost_eur": 175
+  },
+  {
+    "route": "Lyon-Marseille",
+    "distance_km": 315,
+    "mode": "train",
+    "time_h": 1.4,
+    "cost_eur": 35
+  },
+  {
+    "route": "Lyon-Marseille",
+    "distance_km": 315,
+    "mode": "car",
+    "time_h": 3.5,
+    "cost_eur": 80
+  },
+  {
+    "route": "Paris-Nice",
+    "distance_km": 930,
+    "mode": "train",
+    "time_h": 5.5,
+    "cost_eur": 95
+  },
+  {
+    "route": "Paris-Nice",
+    "distance_km": 930,
+    "mode": "car",
+    "time_h": 9.0,
+    "cost_eur": 210
+  },
+  {
+    "route": "Lille-Strasbourg",
+    "distance_km": 525,
+    "mode": "train",
+    "time_h": 3.0,
+    "cost_eur": 65
+  },
+  {
+    "route": "Lille-Strasbourg",
+    "distance_km": 525,
+    "mode": "car",
+    "time_h": 5.5,
+    "cost_eur": 120
+  },
+  {
+    "route": "Bordeaux-Toulouse",
+    "distance_km": 245,
+    "mode": "train",
+    "time_h": 2.1,
+    "cost_eur": 35
+  },
+  {
+    "route": "Bordeaux-Toulouse",
+    "distance_km": 245,
+    "mode": "car",
+    "time_h": 2.5,
+    "cost_eur": 60
+  }
+]
