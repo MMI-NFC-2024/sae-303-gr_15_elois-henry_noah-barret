@@ -1,17 +1,43 @@
 ---
 import Layout from "../layouts/Layout.astro";
-// ADAPTEZ CE CHEMIN selon où vous avez mis le fichier JSON
-import garesData from "../assets/gare-de-voyageurs.json";
+import tourismeText from "../assets/datatourisme-tour2.json?raw";
+import departementsText from "../assets/departements.geojson?raw";
+import garesText from "../assets/gares-de-voyageurs2.geojson?raw";
 
-const gares = garesData
-  .filter((g) => g.position_geographique?.lat && g.position_geographique?.lon)
-  .map((g) => ({
-    nom: g.nom,
-    lat: g.position_geographique.lat,
-    lon: g.position_geographique.lon,
-    codeinsee: g.codeinsee || "",
-    segment: g.segment_drg || "",
-  }));
+const tourismeData = JSON.parse(tourismeText);
+const departementsData = JSON.parse(departementsText);
+const garesData = JSON.parse(garesText);
+const lieux = tourismeData
+
+  .map((d) => ({
+    nom: d.Nom_du_POI || d.Nom_du_POT || d.nom || "Lieu touristique",
+    categorie: d.Categorie || "Non renseigné",
+    commune: d.Commune || "Inconnue",
+    code_postal: d.Code_postal || "",
+    lon: +d.Longitude || +d["coordonnees.lon"] || +d["Coordonnées.lon"],
+    lat: +d.Latitude || +d["coordonnees.lat"] || +d["Coordonnées.lat"],
+  }))
+  .filter(
+    (d) =>
+      d.lat && d.lon && d.lat > 41 && d.lat < 52 && d.lon > -6 && d.lon < 10
+  );
+
+const garesClean = (garesData.features || [])
+  .filter(
+    (f) =>
+      f.geometry &&
+      f.geometry.type === "Point" &&
+      Array.isArray(f.geometry.coordinates)
+  )
+  .map((f) => ({
+    nom: f.properties?.nom || f.properties?.NOM_GARE || "Gare",
+    lon: f.geometry.coordinates[0],
+    lat: f.geometry.coordinates[1],
+  }))
+  .filter(
+    (d) =>
+      d.lat && d.lon && d.lat > 41 && d.lat < 52 && d.lon > -6 && d.lon < 10
+  );
 ---
 
 <Layout>
@@ -20,193 +46,151 @@ const gares = garesData
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
   />
+  <link
+    slot="head"
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+  />
+  <link
+    slot="head"
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
+  />
 
-  <div class="max-w-7xl mx-auto">
-    <div class="mb-8">
-      <h1 class="text-4xl font-bold text-gray-900 mb-3">
-        🚂 Trouvez votre gare
-      </h1>
-      <p class="text-lg text-gray-600">
-        Recherchez parmi {gares.length} gares en France et localisez-les sur la carte
-        interactive
-      </p>
-    </div>
+  <main class="max-w-7xl mx-auto p-8">
+    <h1 class="text-3xl font-bold mb-2 text-gray-900">
+      Lieux touristiques et gares en France
+    </h1>
+    <p class="text-gray-600 mb-6">
+      {garesClean.length} gares et {lieux.length} lieux touristiques
+    </p>
+    <p>
+        Cette carte interactive vous permet de rechercher les gares et les lieux touristiques aux alentours. Utilisez le menu déroulant pour choisir d'afficher uniquement les gares, uniquement les lieux touristiques, ou les deux simultanément.
+    </p>
 
-    <div class="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-100">
-      <div class="relative">
-        <input
-          type="text"
-          id="search-input"
-          placeholder="Rechercher une gare (ex: Paris, Lyon, Marseille...)"
-          class="w-full px-5 py-4 text-base border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 focus:outline-none transition-all"
-          autocomplete="off"
-        />
-        <div
-          id="autocomplete-list"
-          class="hidden absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl max-h-96 overflow-y-auto z-50"
+    <div class="grid md:grid-cols-2 gap-4 mb-6">
+      <div class="bg-white rounded-lg shadow-md p-4">
+        <label for="affichage" class="block mb-2 font-medium text-gray-700">
+          Éléments à afficher :
+        </label>
+        <select
+          id="affichage"
+          class="w-full border-2 border-gray-200 rounded-lg px-3 py-2 focus:border-indigo-500 focus:outline-none"
         >
-        </div>
+          <option value="both" selected>Gares + Lieux touristiques</option>
+          <option value="gares">Gares uniquement</option>
+          <option value="tourisme">Lieux touristiques uniquement</option>
+        </select>
       </div>
     </div>
 
     <div
       class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100"
     >
-      <div id="map" style="height: 600px; width: 100%;"></div>
+      <div id="map" style="height: 700px; width: 100%;"></div>
     </div>
-  </div>
+
+    <div
+      class="mt-4 bg-white rounded-lg shadow-md p-4 flex gap-6 justify-center text-sm"
+    >
+      <div class="flex items-center gap-2">
+        <span class="text-red-500 text-xl">▲</span>
+        <span class="text-gray-700">Lieux touristiques</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-blue-600 text-xl">●</span>
+        <span class="text-gray-700">Gares</span>
+      </div>
+    </div>
+  </main>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" is:inline
   ></script>
+  <script
+    src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"
+    is:inline></script>
 
-  <script define:vars={{ gares }}>
-    // Attendre que la page soit complètement chargée
+  <script define:vars={{ lieux, garesClean }}>
     document.addEventListener("DOMContentLoaded", function () {
-      console.log(`✅ ${gares.length} gares chargées`);
+      console.log(` ${lieux.length} lieux touristiques`);
+      console.log(` ${garesClean.length} gares`);
 
       let map;
-      let markers = L.layerGroup();
-      let selectedIndex = -1;
+      let garesLayer = L.markerClusterGroup({ maxClusterRadius: 40 });
+      let lieuxLayer = L.markerClusterGroup({ maxClusterRadius: 40 });
+      let highlightMarker = null;
 
-      // Initialiser la carte
-      try {
-        const mapElement = document.getElementById("map");
-        if (!mapElement) {
-          console.error("❌ Élément #map introuvable");
-          return;
-        }
+      map = L.map("map").setView([46.603354, 1.888334], 6);
 
-        map = L.map("map").setView([46.603354, 1.888334], 6);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: "© OpenStreetMap",
+        maxZoom: 19,
+      }).addTo(map);
 
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: "© OpenStreetMap contributors",
-          maxZoom: 19,
-        }).addTo(map);
-
-        markers.addTo(map);
-
-        setTimeout(() => {
-          map.invalidateSize();
-          console.log("✅ Carte Leaflet initialisée et redimensionnée");
-        }, 200);
-      } catch (error) {
-        console.error("❌ Erreur d'initialisation:", error);
-        return;
-      }
-
-      const searchInput = document.getElementById("search-input");
-      const autocompleteList = document.getElementById("autocomplete-list");
-
-      if (!searchInput || !autocompleteList) {
-        console.error("❌ Éléments de recherche introuvables");
-        return;
-      }
-
-      searchInput.addEventListener("input", (e) => {
-        const value = e.target.value.toLowerCase().trim();
-        autocompleteList.innerHTML = "";
-        selectedIndex = -1;
-
-        if (value.length < 2) {
-          autocompleteList.classList.add("hidden");
-          return;
-        }
-
-        const filtered = gares
-          .filter((g) => g.nom.toLowerCase().includes(value))
-          .slice(0, 15);
-
-        if (filtered.length === 0) {
-          autocompleteList.innerHTML =
-            '<div class="p-4 text-center text-gray-500">Aucune gare trouvée</div>';
-          autocompleteList.classList.remove("hidden");
-          return;
-        }
-
-        filtered.forEach((gare) => {
-          const item = document.createElement("div");
-          item.className =
-            "px-5 py-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors";
-          item.innerHTML = `
-            <div class="font-semibold text-gray-900">${gare.nom}</div>
-            <div class="text-sm text-gray-500 mt-1">Code INSEE: ${gare.codeinsee}</div>
-          `;
-          item.addEventListener("click", () => selectGare(gare));
-          autocompleteList.appendChild(item);
-        });
-
-        autocompleteList.classList.remove("hidden");
+      const gareIcon = L.icon({
+        iconUrl:
+          "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
+        shadowUrl:
+          "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+        iconSize: [20, 33],
+        iconAnchor: [10, 33],
+        popupAnchor: [0, -28],
+        shadowSize: [33, 33],
       });
 
-      searchInput.addEventListener("keydown", (e) => {
-        const items = autocompleteList.querySelectorAll(
-          'div[class*="cursor-pointer"]'
-        );
-
-        if (e.key === "ArrowDown") {
-          e.preventDefault();
-          selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
-          updateSelection(items);
-        } else if (e.key === "ArrowUp") {
-          e.preventDefault();
-          selectedIndex = Math.max(selectedIndex - 1, 0);
-          updateSelection(items);
-        } else if (e.key === "Enter" && selectedIndex >= 0) {
-          e.preventDefault();
-          items[selectedIndex].click();
-        } else if (e.key === "Escape") {
-          autocompleteList.classList.add("hidden");
-        }
+      const tourismeIcon = L.icon({
+        iconUrl:
+          "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
+        shadowUrl:
+          "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+        iconSize: [20, 33],
+        iconAnchor: [10, 33],
+        popupAnchor: [0, -28],
+        shadowSize: [33, 33],
       });
-
-      function updateSelection(items) {
-        items.forEach((item, index) => {
-          if (index === selectedIndex) {
-            item.classList.add("bg-indigo-50");
-            item.scrollIntoView({ block: "nearest" });
-          } else {
-            item.classList.remove("bg-indigo-50");
-          }
-        });
-      }
-
-      function selectGare(gare) {
-        console.log("Gare sélectionnée:", gare.nom);
-
-        autocompleteList.classList.add("hidden");
-        searchInput.value = gare.nom;
-
-        markers.clearLayers();
-
-        const marker = L.marker([gare.lat, gare.lon]);
-
+      garesClean.forEach((gare) => {
+        const marker = L.marker([gare.lat, gare.lon], { icon: gareIcon });
         marker.bindPopup(`
-          <div style="padding: 12px;">
-            <div style="font-weight: bold; font-size: 16px; margin-bottom: 8px;">🚉 ${gare.nom}</div>
-            <div style="font-size: 14px; color: #6b7280;">
-              <div><span style="font-weight: 500;">Code INSEE:</span> ${gare.codeinsee}</div>
-              <div><span style="font-weight: 500;">Segment:</span> ${gare.segment}</div>
-              <div><span style="font-weight: 500;">Coordonnées:</span> ${gare.lat.toFixed(5)}, ${gare.lon.toFixed(5)}</div>
+          <div style="padding: 8px;">
+            <div style="font-weight: bold; margin-bottom: 4px;">🚉 ${gare.nom}</div>
+          </div>
+        `);
+        garesLayer.addLayer(marker);
+      });
+
+      lieux.forEach((lieu) => {
+        const marker = L.marker([lieu.lat, lieu.lon], { icon: tourismeIcon });
+        marker.bindPopup(`
+          <div style="padding: 10px; min-width: 200px;">
+            <div style="font-weight: bold; font-size: 15px; margin-bottom: 6px;">📍 ${lieu.nom}</div>
+            <div style="font-size: 13px; color: #6b7280;">
+              <div><b>Catégorie:</b> ${lieu.categorie}</div>
+              <div><b>Commune:</b> ${lieu.commune} (${lieu.code_postal})</div>
             </div>
           </div>
         `);
+        lieuxLayer.addLayer(marker);
+      });
 
-        marker.addTo(markers);
-        marker.openPopup();
+      map.addLayer(garesLayer);
+      map.addLayer(lieuxLayer);
 
-        map.flyTo([gare.lat, gare.lon], 13, {
-          duration: 1.5,
-        });
-      }
+      const affichageSelect = document.getElementById("affichage");
+      affichageSelect.addEventListener("change", (e) => {
+        const mode = e.target.value;
 
-      document.addEventListener("click", (e) => {
-        if (
-          !e.target.closest("#search-input") &&
-          !e.target.closest("#autocomplete-list")
-        ) {
-          autocompleteList.classList.add("hidden");
+        map.removeLayer(garesLayer);
+        map.removeLayer(lieuxLayer);
+
+        if (mode === "both" || mode === "gares") {
+          map.addLayer(garesLayer);
+        }
+        if (mode === "both" || mode === "tourisme") {
+          map.addLayer(lieuxLayer);
         }
       });
+
+
     });
   </script>
 </Layout>

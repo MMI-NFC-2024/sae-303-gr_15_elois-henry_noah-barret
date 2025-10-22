@@ -19,12 +19,10 @@ import "../styles/global.css";
     <slot name="head" />
   </head>
   <body>
-    <header class="bg-white/80 backdrop-blur-sm shadow-sm sticky top-0 z-50 ">
-      <div
-        class="max-w-5xl mx-auto p-8 flex items-center justify-center"
-      >
+    <header class="bg-white/80 backdrop-blur-sm shadow-sm sticky top-0 z-50">
+      <div class="max-w-5xl mx-auto p-8 flex items-center justify-center">
         <nav aria-label="Main navigation">
-          <ul class="flex flex-col md:flex-row gap-3 md:gap-6 items-center">
+          <ul class="flex flex-col md:flex-row gap-3 md:gap-15 items-center">
             <li>
               <a
                 href="/"
@@ -41,16 +39,23 @@ import "../styles/global.css";
             </li>
             <li>
               <a
-                href="/trajets"
+                href="/tourisme"
                 class="text-gray-700 hover:text-indigo-600 transition-colors"
-                >Réagissez
+                >Le tourisme près des gares
+              </a>
+            </li>
+            <li>
+              <a
+                href="/leaflet"
+                class="text-gray-700 hover:text-indigo-600 transition-colors"
+                >Trouvez votre gare
               </a>
             </li>
             <li>
               <a
                 href="/trajets"
                 class="text-gray-700 hover:text-indigo-600 transition-colors"
-                >Trouvez votre gare
+                >Réagissez
               </a>
             </li>
           </ul>
