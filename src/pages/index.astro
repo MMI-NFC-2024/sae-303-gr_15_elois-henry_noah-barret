@@ -1,6 +1,5 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import PlotFigureCO2 from "../components/PlotFigureCO2.astro";
 
 const _rawModule = await import("../assets/emission_co2_triee.json", {
   assert: { type: "json" },
@@ -20,54 +19,10 @@ const trajets = rawData
   .filter(Boolean)
   .sort();
 
-function getDataForTrajetServer(trajet: any) {
-  const row = rawData.find((d: any) => d.Trajet === trajet);
-  if (!row) return [];
-  return modeKeys
-    .map(({ key, mode }) => ({ mode, CO2e: Number(row[key]) || 0 }))
-    .filter((d) => d.CO2e > 0);
-}
-
 const initialTrajet = trajets[0];
-const aggregated = getDataForTrajetServer(initialTrajet);
 ---
 
 <Layout>
-  <section class="relative bg-[#f9f8f6] text-[#1a1a1a]">
-    <div
-      class="max-w-6xl mx-auto px-6 py-28 sm:py-40 flex flex-col sm:flex-row items-center gap-12"
-    >
-      <div class="flex-1">
-        <h1 class="text-5xl sm:text-6xl font-extrabold mb-4 tracking-tight">
-          Le Pari du Train
-        </h1>
-        <p class="text-xl font-light text-[#555] mb-8 leading-relaxed">
-          Entre urgence climatique et réalité du terrain
-        </p>
-        <p class="text-base text-[#666] mb-10 leading-relaxed max-w-lg">
-          Le train s'impose comme la solution la plus sobre pour voyager.
-          Pourtant, son usage reste marginal face à la voiture. Ce projet
-          explore pourquoi, à travers des données concrètes et une analyse
-          visuelle du territoire.
-        </p>
-        <a
-          href="#analyse"
-          class="inline-block border border-black text-black px-6 py-3 hover:bg-black hover:text-white transition-colors text-sm"
-        >
-          Découvrir les données →
-        </a>
-      </div>
-
-      <div class="flex-1">
-        <img
-          src="/Principale.webp"
-          alt="TGV en mouvement"
-          class="rounded-2xl shadow-xl object-cover w-full h-72 sm:h-96"
-        />
-      </div>
-    </div>
-  </section>
-
   <main class="max-w-6xl mx-auto px-6 py-24 bg-white" id="analyse">
     <section class="mb-20">
       <div class="mb-12 text-center">
@@ -81,6 +36,7 @@ const aggregated = getDataForTrajetServer(initialTrajet);
       </div>
 
       <div class="bg-[#fdfbf8] border border-gray-200 rounded-2xl shadow-sm">
+        <!-- Sélecteur de trajet -->
         <div class="px-8 py-6 border-b border-gray-200">
           <label
             for="trajet"
@@ -94,47 +50,16 @@ const aggregated = getDataForTrajetServer(initialTrajet);
             data-raw={JSON.stringify(rawData)}
             data-modekeys={JSON.stringify(modeKeys)}
           >
-            {
-              trajets.map((t: any, i: any) => (
-                <option value={t} selected={i === 0}>
-                  {t}
-                </option>
-              ))
-            }
+            {trajets.map((t: any, i: any) => (
+              <option value={t} selected={i === 0}>{t}</option>
+            ))}
           </select>
         </div>
 
+        <!-- Conteneur du graphique -->
         <div class="px-8 py-8">
-          <div id="chart" class="min-h-[440px]">
-            <PlotFigureCO2
-              data={aggregated}
-              config={{
-                y: { label: "Émissions (kg CO₂e / passager)", grid: true },
-                x: { label: "Mode de transport" },
-                color: {
-                  domain: [
-                    "Train",
-                    "Autocar",
-                    "Avion",
-                    "Voiture électrique",
-                    "Voiture thermique",
-                  ],
-                  range: [
-                    "#2563eb",
-                    "#f59e0b",
-                    "#ef4444",
-                    "#06b6d4",
-                    "#6b7280",
-                  ],
-                  legend: true,
-                  label: "Mode de transport",
-                },
-                width: 760,
-                height: 440,
-                marginBottom: 60,
-                style: { fontSize: "13px" },
-              }}
-            />
+          <div id="chart" class="min-h-[440px] flex justify-center items-center">
+            <p class="text-gray-500 text-sm italic">Chargement du graphique...</p>
           </div>
         </div>
 
@@ -160,32 +85,25 @@ const aggregated = getDataForTrajetServer(initialTrajet);
         </p>
       </div>
     </section>
-
-    <div class="border-t border-gray-200 my-16"></div>
-
-    <section class="py-16 text-center">
-      <h2 class="text-2xl font-light text-gray-900 mb-4">
-        Mais si le train est un si grand avantage écologique, pourquoi son usage
-        reste-t-il minime dans le secteur du tourisme en France ?
-      </h2>
-      <p class="text-gray-600 mb-8 max-w-2xl mx-auto">
-        Pour le comprendre, analysons la réalité du terrain : accessibilité des
-        gares, maillage du réseau et présence d’infrastructures autour.
-      </p>
-      <a
-        href="/sliderCarte"
-        class="inline-block border border-black px-6 py-3 text-sm hover:bg-black hover:text-white transition-colors"
-      >
-        Explorer le réseau ferroviaire →
-      </a>
-    </section>
   </main>
 
-  <script type="module">
+  <!-- 🔹 Script client -->
+  <script type="module" client:load>
+    import * as Plot from "https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/+esm";
+
     const select = document.querySelector("#trajet");
     const chartContainer = document.querySelector("#chart");
     const rawData = JSON.parse(select.dataset.raw);
     const modeKeys = JSON.parse(select.dataset.modekeys);
+
+    function safeFormat(n) {
+      return typeof n === "number" && !Number.isNaN(n)
+        ? n.toFixed(1)
+        : Number(n)
+        ? Number(n).toFixed(1)
+        : "0.0";
+    }
+
     function getDataForTrajet(trajet) {
       const row = rawData.find((d) => d.Trajet === trajet);
       if (!row) return [];
@@ -193,47 +111,57 @@ const aggregated = getDataForTrajetServer(initialTrajet);
         .map(({ key, mode }) => ({ mode, CO2e: Number(row[key]) || 0 }))
         .filter((d) => d.CO2e > 0);
     }
-    (async () => {
-      try {
-        const clientModule = await import("/plotClient.js?url");
-        function renderChart(trajet) {
-          const data = getDataForTrajet(trajet);
-          clientModule.renderChart(chartContainer, data, {
-            y: { label: "Émissions (kg CO₂e / passager)", grid: true },
-            x: { label: "Mode de transport" },
-            color: {
-              domain: [
-                "Train",
-                "Autocar",
-                "Avion",
-                "Voiture électrique",
-                "Voiture thermique",
-              ],
-              range: ["#2563eb", "#f59e0b", "#ef4444", "#06b6d4", "#6b7280"],
-              legend: true,
-              label: "Mode de transport",
-            },
-            width: 760,
-            height: 440,
-            marginBottom: 60,
-            style: { fontSize: "13px" },
-          });
-        }
-        try {
-          renderChart(select.value);
-        } catch (err) {
-          console.error("Erreur lors du rendu initial du graphique:", err);
-        }
-        select.addEventListener("change", (e) => {
-          try {
-            renderChart(e.target.value);
-          } catch (err) {
-            console.error("Erreur lors de la mise à jour du graphique:", err);
-          }
-        });
-      } catch (err) {
-        console.error("Erreur de chargement :", err);
-      }
-    })();
+
+    function renderChart(trajet) {
+      const data = getDataForTrajet(trajet);
+      chartContainer.innerHTML = "";
+
+      const chart = Plot.plot({
+        marks: [
+          Plot.barY(data, {
+            x: "mode",
+            y: "CO2e",
+            fill: (d) => d.mode,
+            title: (d) => `${d.mode} : ${safeFormat(d.CO2e)} kg CO₂e`,
+          }),
+          Plot.text(data, {
+            x: "mode",
+            y: (d) => d.CO2e + 2,
+            text: (d) => `${safeFormat(d.CO2e)} kg`,
+            textAnchor: "middle",
+            fontWeight: "bold",
+          }),
+          Plot.ruleY([0]),
+        ],
+        y: { label: "Émissions (kg CO₂e / passager)", grid: true },
+        x: { label: "Mode de transport" },
+        color: {
+          domain: [
+            "Train",
+            "Autocar",
+            "Avion",
+            "Voiture électrique",
+            "Voiture thermique",
+          ],
+          range: ["#2563eb", "#f59e0b", "#ef4444", "#06b6d4", "#6b7280"],
+          legend: true,
+          label: "Mode de transport",
+        },
+        width: 760,
+        height: 440,
+        marginBottom: 60,
+        style: { fontSize: "13px" },
+      });
+
+      chartContainer.append(chart);
+    }
+
+    // Affichage initial
+    renderChart(select.value);
+
+    // Mise à jour à chaque changement
+    select.addEventListener("change", (e) => {
+      renderChart(e.target.value);
+    });
   </script>
 </Layout>
