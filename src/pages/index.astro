@@ -195,7 +195,7 @@ const aggregated = getDataForTrajetServer(initialTrajet);
     }
     (async () => {
       try {
-        const clientModule = await import("/plotClient.js");
+        const clientModule = await import("/plotClient.js?url");
         function renderChart(trajet) {
           const data = getDataForTrajet(trajet);
           clientModule.renderChart(chartContainer, data, {
