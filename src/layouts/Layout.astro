@@ -8,6 +8,12 @@ import "../styles/global.css";
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+      rel="stylesheet"
+    />
     <meta name="generator" content={Astro.generator} />
     <title>Astro Basics</title>
   </head>
@@ -16,9 +22,8 @@ import "../styles/global.css";
       <div
         class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between"
       >
-        <a href="/" class="text-xl font-semibold text-indigo-600">les trains</a>
         <nav aria-label="Main navigation">
-          <ul class="flex flex-col md:flex-row gap-3 md:gap-6 items-center">
+          <ul class="flex flex-col md:flex-row gap-3 md:gap-6 items-center ">
             <li>
               <a
                 href="/"
@@ -28,31 +33,38 @@ import "../styles/global.css";
             </li>
             <li>
               <a
-                href="/about"
+                href="/sliderCarte"
                 class="text-gray-700 hover:text-indigo-600 transition-colors"
-                >le problème</a
+                >Le réseau ferroviaire actuel</a
               >
             </li>
             <li>
               <a
-                href="/contact"
+                href="/trajets"
                 class="text-gray-700 hover:text-indigo-600 transition-colors"
-                >L'état actuel</a
-              >
+                >Réagissez
+              </a>
             </li>
             <li>
               <a
-                href="/contact"
+                href="/trajets"
                 class="text-gray-700 hover:text-indigo-600 transition-colors"
-                >L'état actuel</a
-              >
+                >Trouvez votre gare
+              </a>
             </li>
           </ul>
         </nav>
       </div>
     </header>
-    <main class="max-w-5xl mx-auto px-4 py-6">
+    <main class="mx-auto px-4 py-6">
       <slot />
     </main>
+    <footer class="bg-gray-100 mt-12">
+      <div
+        class="max-w-5xl mx-auto px-4 py-6 text-center text-gray-600 text-sm"
+      >
+        © {new Date().getFullYear()} Les Trains. Tous droits réservés.
+      </div>
+    </footer>
   </body>
 </html>

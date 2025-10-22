@@ -1,0 +1,18 @@
+[
+  {
+    "lon": 2.2945,
+    "lat": 48.8584,
+    "nom": "Tour Eiffel",
+    "commune": "Paris",
+    "gare_proche": "Gare de Paris",
+    "dist": 2.0
+  },
+  {
+    "lon": -0.57918,
+    "lat": 44.8378,
+    "nom": "Place de la Bourse",
+    "commune": "Bordeaux",
+    "gare_proche": "Gare de Bordeaux",
+    "dist": 1.2
+  }
+]

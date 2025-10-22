@@ -1,168 +1,238 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import PlotFigureCO2 from "../components/PlotFigureCO2.astro";
+
+const _rawModule = await import("../assets/emission_co2_triee.json", {
+  assert: { type: "json" },
+});
+const rawData = ((_rawModule as any)?.default ?? (_rawModule as any)) || [];
+
+const modeKeys = [
+  { key: "Train_CO2e", mode: "Train" },
+  { key: "Bus_CO2e", mode: "Autocar" },
+  { key: "Avion_CO2e", mode: "Avion" },
+  { key: "VoitureElec_CO2e", mode: "Voiture électrique" },
+  { key: "VoitureTherm_CO2e", mode: "Voiture thermique" },
+];
+
+const trajets = rawData
+  .map((d: any) => d.Trajet)
+  .filter(Boolean)
+  .sort();
+
+function getDataForTrajetServer(trajet: any) {
+  const row = rawData.find((d: any) => d.Trajet === trajet);
+  if (!row) return [];
+  return modeKeys
+    .map(({ key, mode }) => ({ mode, CO2e: Number(row[key]) || 0 }))
+    .filter((d) => d.CO2e > 0);
+}
+
+const initialTrajet = trajets[0];
+const aggregated = getDataForTrajetServer(initialTrajet);
 ---
 
-<Layout
-  title="Le Pari du Train : Entre Urgence Climatique et Réalité du Terrain"
->
-  <section id="urgence" class="py-20 bg-gray-900 text-white">
-      <div class="text-center mb-12">
-        <span
-          class="text-blue-400 font-semibold text-sm uppercase tracking-wide"
-          >01 • Pourquoi c'est important</span
-        >
-        <h2 class="text-4xl md:text-5xl font-bold mt-4 mb-6">
-          🌍 L'Urgence Climatique en Chiffres
-        </h2>
-        <p class="text-xl text-gray-300 max-w-3xl mx-auto">
-          Le transport représente 31% des émissions de CO₂ en France. Le choix
-          du mode de transport n'est pas anodin.
+<Layout>
+  <section class="relative bg-[#f9f8f6] text-[#1a1a1a]">
+    <div
+      class="max-w-6xl mx-auto px-6 py-28 sm:py-40 flex flex-col sm:flex-row items-center gap-12"
+    >
+      <div class="flex-1">
+        <h1 class="text-5xl sm:text-6xl font-extrabold mb-4 tracking-tight">
+          Le Pari du Train
+        </h1>
+        <p class="text-xl font-light text-[#555] mb-8 leading-relaxed">
+          Entre urgence climatique et réalité du terrain
         </p>
+        <p class="text-base text-[#666] mb-10 leading-relaxed max-w-lg">
+          Le train s’impose comme la solution la plus sobre pour voyager.
+          Pourtant, son usage reste marginal face à la voiture. Ce projet
+          explore pourquoi, à travers des données concrètes et une analyse
+          visuelle du territoire.
+        </p>
+        <a
+          href="#analyse"
+          class="inline-block border border-black text-black px-6 py-3 hover:bg-black hover:text-white transition-colors text-sm"
+        >
+          Découvrir les données →
+        </a>
+      </div>
+
+      <div class="flex-1">
+        <img
+          src="/Principale.webp"
+          alt="TGV en mouvement"
+          class="rounded-2xl shadow-xl object-cover w-full h-72 sm:h-96"
+        />
+      </div>
+    </div>
+  </section>
+
+  <main class="max-w-6xl mx-auto px-6 py-24 bg-white" id="analyse">
+    <section class="mb-20">
+      <div class="mb-12 text-center">
+        <h2 class="text-4xl font-semibold text-gray-900 mb-3">
+          Émissions de CO₂ par mode de transport
+        </h2>
+        <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+          Le transport représente près d’un tiers des émissions nationales de
+          CO₂. Le train reste imbattable en matière de sobriété carbone.
+        </p>
+      </div>
+
+      <div class="bg-[#fdfbf8] border border-gray-200 rounded-2xl shadow-sm">
+        <div class="px-8 py-6 border-b border-gray-200">
+          <label
+            for="trajet"
+            class="block text-sm font-medium text-gray-700 mb-3"
+          >
+            Sélectionnez un trajet
+          </label>
+          <select
+            id="trajet"
+            class="w-full sm:w-auto border border-gray-300 px-4 py-2 text-sm rounded-md focus:border-black focus:ring-1 focus:ring-black transition"
+            data-raw={JSON.stringify(rawData)}
+            data-modekeys={JSON.stringify(modeKeys)}
+          >
+            {
+              trajets.map((t: any, i: any) => (
+                <option value={t} selected={i === 0}>
+                  {t}
+                </option>
+              ))
+            }
+          </select>
+        </div>
+
+        <div class="px-8 py-8">
+          <div id="chart" class="min-h-[440px]">
+            <PlotFigureCO2
+              data={aggregated}
+              config={{
+                y: { label: "Émissions (kg CO₂e / passager)", grid: true },
+                x: { label: "Mode de transport" },
+                color: {
+                  domain: [
+                    "Train",
+                    "Autocar",
+                    "Avion",
+                    "Voiture électrique",
+                    "Voiture thermique",
+                  ],
+                  range: [
+                    "#2563eb",
+                    "#f59e0b",
+                    "#ef4444",
+                    "#06b6d4",
+                    "#6b7280",
+                  ],
+                  legend: true,
+                  label: "Mode de transport",
+                },
+                width: 760,
+                height: 440,
+                marginBottom: 60,
+                style: { fontSize: "13px" },
+              }}
+            />
+          </div>
+        </div>
+
+        <div
+          class="px-8 py-4 bg-[#f5f4f2] border-t border-gray-200 text-sm text-gray-500 rounded-b-2xl"
+        >
+          Source :
+          <a
+            href="https://www.data.gouv.fr/api/1/datasets/r/86bb950c-3ad4-4d32-8126-8a236f8449b2"
+            class="underline hover:text-black"
+          >
+            data.gouv.fr – Bilan CO₂ par mode de transport (ADEME)
+          </a>
+        </div>
       </div>
 
       <div
-        class="mt-12 p-6 bg-blue-900/30 border-l-4 border-blue-500 rounded-r-lg"
+        class="mt-10 px-6 py-4 bg-[#fefae0] border-l-4 border-[#a68a64] max-w-3xl mx-auto rounded-r-md"
       >
-        <p class="text-lg">
-          💡 <strong>Insight clé :</strong> Le train émet 32 fois moins de CO₂ que
-          la voiture par voyageur. Pourtant, 65% des Français choisissent encore
-          la voiture pour leurs vacances.
+        <p class="text-sm text-gray-700">
+          💡 <strong>Constat :</strong> Le train émet 32× moins de CO₂ que la voiture
+          thermique, mais reste minoritaire dans les déplacements longue distance.
         </p>
       </div>
+    </section>
 
-  </section>
-  <section id="diagnostic" class="py-20 bg-white">
-    <div class="container mx-auto px-4 max-w-7xl">
-      <div class="text-center mb-12">
-        <span
-          class="text-blue-600 font-semibold text-sm uppercase tracking-wide"
-          >02 • La réalité du terrain</span
-        >
-        <h2 class="text-4xl md:text-5xl font-bold mt-4 mb-6 text-gray-900">
-          État des Lieux du Réseau Français
-        </h2>
-        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-          Toutes les gares ne se valent pas. L'accessibilité multimodale est la
-          clé.
-        </p>
-      </div>
+    <div class="border-t border-gray-200 my-16"></div>
 
-      <div class="my-16"></div>
-
-      <div class="mt-12 grid md:grid-cols-2 gap-8">
-        <div class="p-6 bg-red-50 border-l-4 border-red-500 rounded-r-lg">
-          <h3 class="font-bold text-lg mb-2 text-red-900">🔴 Le Problème</h3>
-          <p class="text-red-800">
-            De nombreuses gares, notamment en zone rurale, manquent de
-            correspondances. Sans bus ou tramway, elles restent inaccessibles
-            pour les touristes.
-          </p>
-        </div>
-        <div class="p-6 bg-green-50 border-l-4 border-green-500 rounded-r-lg">
-          <h3 class="font-bold text-lg mb-2 text-green-900">
-            🟢 Les Champions
-          </h3>
-          <p class="text-green-800">
-            Les grandes gares urbaines (Paris, Lyon, Lille) bénéficient d'une
-            excellente desserte multimodale. Elles montrent l'exemple.
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- SECTION 3 : COMPARAISON TRAIN VS VOITURE -->
-  <section
-    id="comparaison"
-    class="py-20 bg-gradient-to-br from-gray-50 to-blue-50"
-  >
-    <div class="container mx-auto px-4 max-w-6xl">
-      <div class="text-center mb-12">
-        <span
-          class="text-blue-600 font-semibold text-sm uppercase tracking-wide"
-          >03 • Le verdict</span
-        >
-        <h2 class="text-4xl md:text-5xl font-bold mt-4 mb-6 text-gray-900">
-          ⚡ Train vs Voiture : Le Match
-        </h2>
-        <p class="text-xl text-gray-600 max-w-3xl mx-auto">
-          Sur 20 trajets identiques, qui l'emporte en termes de coût, de temps
-          et d'écologie ?
-        </p>
-      </div>
-
-      <div class="grid md:grid-cols-3 gap-6 mt-12">
-        <div
-          class="bg-white p-6 rounded-xl shadow-lg text-center hover:shadow-2xl transition-shadow"
-        >
-          <div class="text-4xl mb-3">⏱️</div>
-          <div class="text-3xl font-bold text-blue-600 mb-2">2h30</div>
-          <div class="text-gray-600">gagnées en moyenne</div>
-        </div>
-        <div
-          class="bg-white p-6 rounded-xl shadow-lg text-center hover:shadow-2xl transition-shadow"
-        >
-          <div class="text-4xl mb-3">💰</div>
-          <div class="text-3xl font-bold text-green-600 mb-2">30%</div>
-          <div class="text-gray-600">moins cher</div>
-        </div>
-        <div
-          class="bg-white p-6 rounded-xl shadow-lg text-center hover:shadow-2xl transition-shadow"
-        >
-          <div class="text-4xl mb-3">🌱</div>
-          <div class="text-3xl font-bold text-green-600 mb-2">100kg</div>
-          <div class="text-gray-600">CO₂ évités</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- SECTION 4 : SIMULATEUR -->
-  <section
-    id="solution"
-    class="py-20 bg-gradient-to-br from-blue-600 to-blue-800 text-white"
-  >
-    <div class="container mx-auto px-4 max-w-5xl">
-      <div class="text-center mb-12">
-        <span
-          class="text-blue-200 font-semibold text-sm uppercase tracking-wide"
-          >04 • À vous de jouer</span
-        >
-        <h2 class="text-4xl md:text-5xl font-bold mt-4 mb-6">
-          ✨ Testez Votre Trajet
-        </h2>
-        <p class="text-xl text-blue-100 max-w-3xl mx-auto">
-          Choisissez votre destination et découvrez combien vous économisez en
-          prenant le train
-        </p>
-      </div>
-    </div>
-  </section>
-
-  <!-- FOOTER / CONCLUSION -->
-  <footer class="py-16 bg-gray-900 text-white">
-    <div class="container mx-auto px-4 max-w-4xl text-center">
-      <h2 class="text-3xl font-bold mb-6">🚀 Et Maintenant ?</h2>
-      <p class="text-xl text-gray-300 mb-8">
-        Le tourisme de demain se joue aujourd'hui, sur les rails.
+    <section class="py-16 text-center">
+      <h2 class="text-2xl font-light text-gray-900 mb-4">
+        Si le train est si vertueux, pourquoi reste-t-il si peu utilisé ?
+      </h2>
+      <p class="text-gray-600 mb-8 max-w-2xl mx-auto">
+        Pour le comprendre, analysons la réalité du terrain : accessibilité des
+        gares, maillage du réseau et présence d’infrastructures autour.
       </p>
-      <div class="flex justify-center space-x-4 mb-12">
-        <button
-          class="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold transition"
-        >
-          Partager 📤
-        </button>
-        <button
-          class="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-semibold transition"
-        >
-          Télécharger PDF 📄
-        </button>
-      </div>
-      <div class="text-sm text-gray-500 space-y-2">
-        <p>📊 Projet réalisé avec Observable • Astro • Tailwind CSS</p>
-        <p>Sources : SNCF Open Data, Transport Data Gouv, calculs personnels</p>
-        <p>© 2025 • Votre Nom</p>
-      </div>
-    </div>
-  </footer>
+      <a
+        href="/sliderCarte"
+        class="inline-block border border-black px-6 py-3 text-sm hover:bg-black hover:text-white transition-colors"
+      >
+        Explorer le réseau ferroviaire →
+      </a>
+    </section>
+  </main>
+
+  <script type="module">
+    const select = document.querySelector("#trajet");
+    const chartContainer = document.querySelector("#chart");
+    const rawData = JSON.parse(select.dataset.raw);
+    const modeKeys = JSON.parse(select.dataset.modekeys);
+    function getDataForTrajet(trajet) {
+      const row = rawData.find((d) => d.Trajet === trajet);
+      if (!row) return [];
+      return modeKeys
+        .map(({ key, mode }) => ({ mode, CO2e: Number(row[key]) || 0 }))
+        .filter((d) => d.CO2e > 0);
+    }
+    (async () => {
+      try {
+        const clientModule = await import("/src/script/plotClient.js");
+        function renderChart(trajet) {
+          const data = getDataForTrajet(trajet);
+          clientModule.renderChart(chartContainer, data, {
+            y: { label: "Émissions (kg CO₂e / passager)", grid: true },
+            x: { label: "Mode de transport" },
+            color: {
+              domain: [
+                "Train",
+                "Autocar",
+                "Avion",
+                "Voiture électrique",
+                "Voiture thermique",
+              ],
+              range: ["#2563eb", "#f59e0b", "#ef4444", "#06b6d4", "#6b7280"],
+              legend: true,
+              label: "Mode de transport",
+            },
+            width: 760,
+            height: 440,
+            marginBottom: 60,
+            style: { fontSize: "13px" },
+          });
+        }
+        try {
+          renderChart(select.value);
+        } catch (err) {
+          console.error("Erreur lors du rendu initial du graphique:", err);
+        }
+        select.addEventListener("change", (e) => {
+          try {
+            renderChart(e.target.value);
+          } catch (err) {
+            console.error("Erreur lors de la mise à jour du graphique:", err);
+          }
+        });
+      } catch (err) {
+        console.error("Erreur de chargement :", err);
+      }
+    })();
+  </script>
 </Layout>

@@ -1,0 +1,72 @@
+---
+
+---
+
+<div class="flex flex-col items-center">
+  <h2 class="text-2xl font-bold mb-2 text-center">
+    Répartition des gares en France
+  </h2>
+  <p class="text-gray-600 mb-6 text-center max-w-xl">
+    Cette carte montre le nombre de gares par département. Plus la couleur est
+    foncée, plus il y a de gares.
+  </p>
+  <div id="map-gares" class="w-full flex justify-center"></div>
+</div>
+
+<script type="module" client:load>
+  import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+  import * as Plot from "https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/+esm";
+
+  const departements = await d3.json(
+    "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements.geojson"
+  );
+  const gares = await d3.json(
+    "https://data.sncf.com/api/explore/v2.1/catalog/datasets/gares-de-voyageurs/exports/geojson"
+  );
+
+  const garesValides = gares.features.filter(
+    (d) =>
+      d.geometry &&
+      Array.isArray(d.geometry.coordinates) &&
+      d.geometry.coordinates.length === 2
+  );
+
+  const garesParDepartement = d3.rollup(
+    garesValides,
+    (v) => v.length,
+    (d) => d.properties.codeinsee?.substring(0, 2)
+  );
+
+  const departementsEnrichis = {
+    type: "FeatureCollection",
+    features: departements.features.map((d) => ({
+      ...d,
+      properties: {
+        ...d.properties,
+        nbGares: garesParDepartement.get(d.properties.code) || 0,
+      },
+    })),
+  };
+
+  const plot = Plot.plot({
+    projection: { type: "mercator", domain: departements },
+    color: {
+      scheme: "YlOrRd",
+      legend: true,
+      label: "Nombre de gares",
+      type: "sqrt",
+    },
+    marks: [
+      Plot.geo(departementsEnrichis.features, {
+        fill: (d) => d.properties.nbGares,
+        stroke: "white",
+        strokeWidth: 1,
+        title: (d) => `${d.properties.nom} : ${d.properties.nbGares} gare(s)`,
+      }),
+    ],
+    width: 800,
+    height: 600,
+  });
+
+  document.getElementById("map-gares").appendChild(plot);
+</script>

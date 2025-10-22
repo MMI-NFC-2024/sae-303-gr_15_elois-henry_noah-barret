@@ -1,0 +1,57 @@
+---
+
+---
+
+<div class="flex flex-col items-center">
+  <h2 class="text-2xl font-bold mb-2 text-center">
+    Tourisme et mobilité ferroviaire
+  </h2>
+  <p class="text-gray-600 mb-6 text-center max-w-xl">
+    Cette carte montre les grands sites touristiques français et les gares les
+    plus proches.
+  </p>
+  <div id="map-tourisme" class="w-full flex justify-center"></div>
+</div>
+
+<script type="module" client:load>
+  import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+  import * as Plot from "https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/+esm";
+
+  const departements = await d3.json(
+    "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements.geojson"
+  );
+
+
+  const sites = [
+    { nom: "Tour Eiffel", lat: 48.8584, lon: 2.2945 },
+    { nom: "Mont-Saint-Michel", lat: 48.635, lon: -1.5115 },
+    { nom: "Château de Chambord", lat: 47.6168, lon: 1.5166 },
+    { nom: "Dune du Pilat", lat: 44.5892, lon: -1.213 },
+    { nom: "Cité de Carcassonne", lat: 43.206, lon: 2.363 },
+  ];
+
+  const plot = Plot.plot({
+    projection: { type: "mercator", domain: departements },
+    marks: [
+      Plot.geo(departements, { fill: "#f0f0f0", stroke: "#ccc" }),
+      Plot.dot(sites, {
+        x: "lon",
+        y: "lat",
+        r: 5,
+        fill: "#2c7fb8",
+        title: (d) => d.nom,
+      }),
+      Plot.text(sites, {
+        x: "lon",
+        y: "lat",
+        text: "nom",
+        dy: -10,
+        fontSize: 12,
+      }),
+    ],
+    width: 800,
+    height: 600,
+  });
+
+  document.getElementById("map-tourisme").appendChild(plot);
+</script>

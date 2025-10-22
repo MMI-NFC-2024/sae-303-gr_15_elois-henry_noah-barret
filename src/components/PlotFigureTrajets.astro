@@ -1,0 +1,149 @@
+---
+import * as Plot from "@observablehq/plot";
+import { JSDOM } from "jsdom";
+
+const { data } = Astro.props;
+const safeData = Array.isArray(data) ? data : [];
+
+function plotTime() {
+  const plot = Plot.plot({
+    title: "Comparaison des trains et des voitures sur différents trajets (temps)",
+    subtitle: "Durée moyenne estimée en heures",
+    marks: [
+      Plot.barY(safeData, {
+        x: "route",
+        y: "time_h",
+        fill: "mode",
+        title: d => `${d.route} (${d.mode}) : ${d.time_h} h`,
+      }),
+    ],
+    y: { label: "Durée (heures)", grid: true },
+    color: { domain: ["train", "car"], range: ["#457b9d", "#f39c12"], legend: true },
+    width: 1000,
+    height: 520,
+    marginBottom: 80,
+    document: new JSDOM("").window.document,
+  });
+  return plot.outerHTML;
+}
+
+function plotCost() {
+  const plot = Plot.plot({
+    title: "Comparaison des trains et des voitures sur différents trajets (coût)",
+    subtitle: "Tarifs moyens estimés (€)",
+    marks: [
+      Plot.barY(safeData, {
+        x: "route",
+        y: "cost_eur",
+        fill: "mode",
+        title: d => `${d.route} (${d.mode}) : ${d.cost_eur} €`,
+      }),
+    ],
+    y: { label: "Coût moyen (€)", grid: true },
+    color: { domain: ["train", "car"], range: ["#457b9d", "#f39c12"], legend: true },
+    width: 1000,
+    height: 520,
+    marginBottom: 80,
+    document: new JSDOM("").window.document,
+  });
+  return plot.outerHTML;
+}
+
+function plotScatter() {
+  const meanTime = safeData.reduce((s, d) => s + d.time_h, 0) / safeData.length;
+  const meanCost = safeData.reduce((s, d) => s + d.cost_eur, 0) / safeData.length;
+
+  const plot = Plot.plot({
+    title: "Corrélation entre durée et coût des trajets",
+    subtitle: "Chaque point représente un mode de transport pour un trajet donné",
+    height: 520,
+    width: 1000,
+    marginLeft: 60,
+    x: { label: "Durée (heures)", grid: true },
+    y: { label: "Coût (€)", grid: true },
+    color: {
+      legend: true,
+      domain: ["train", "car"],
+      range: ["#0055A4", "#FFA500"],
+    },
+    marks: [
+      Plot.dot(safeData, {
+        x: "time_h",
+        y: "cost_eur",
+        r: 9,
+        fill: "mode",
+        fillOpacity: 1,
+        stroke: "white",
+        strokeWidth: 2,
+        tip: true,
+        channels: {
+          Route: "route",
+          Durée: (d) => `${d.time_h} h`,
+          Coût: (d) => `${d.cost_eur} €`,
+          Distance: (d) => `${d.distance_km} km`,
+        },
+      }),
+      Plot.ruleX([meanTime], { stroke: "#999", strokeDasharray: "4,4" }),
+      Plot.ruleY([meanCost], { stroke: "#999", strokeDasharray: "4,4" }),
+    ],
+    document: new JSDOM("").window.document,
+  });
+  return plot.outerHTML;
+}
+---
+
+{safeData.length === 0 ? (
+  <div class="p-8 bg-white rounded shadow text-center text-gray-600">
+    Aucune donnée disponible pour afficher les graphiques.
+  </div>
+) : (
+  <div class="space-y-6">
+
+    <div class="flex items-center justify-between text-gray-700">
+      <button id="prevChart" class="hover:text-blue-600 transition">‹ Précédent</button>
+      <div id="chartStatus" class="text-sm font-medium">Affichage 1 / 3</div>
+      <button id="nextChart" class="hover:text-blue-600 transition">Suivant ›</button>
+    </div>
+
+    <div
+      id="chartContainer"
+      class="bg-white rounded-2xl shadow-md overflow-hidden relative flex justify-center items-center mx-auto w-full max-w-[1100px] h-[600px]"
+    >
+      <div id="chart-time" class="absolute inset-0 flex justify-center items-center transition-opacity duration-500" set:html={plotTime()}></div>
+      <div id="chart-cost" class="absolute inset-0 flex justify-center items-center opacity-0 pointer-events-none transition-opacity duration-500" set:html={plotCost()}></div>
+      <div id="chart-scatter" class="absolute inset-0 flex justify-center items-center opacity-0 pointer-events-none transition-opacity duration-500" set:html={plotScatter()}></div>
+    </div>
+  </div>
+)}
+
+<script>
+  const charts = [
+    document.getElementById("chart-time"),
+    document.getElementById("chart-cost"),
+    document.getElementById("chart-scatter"),
+  ];
+  const status = document.getElementById("chartStatus");
+  const prevBtn = document.getElementById("prevChart");
+  const nextBtn = document.getElementById("nextChart");
+
+  let index = 0;
+
+  function updateCharts() {
+    charts.forEach((el, i) => {
+      el.style.opacity = i === index ? 1 : 0;
+      el.style.pointerEvents = i === index ? "auto" : "none";
+    });
+    status.textContent = `Affichage ${index + 1} / ${charts.length}`;
+  }
+
+  prevBtn?.addEventListener("click", () => {
+    index = (index - 1 + charts.length) % charts.length;
+    updateCharts();
+  });
+  nextBtn?.addEventListener("click", () => {
+    index = (index + 1) % charts.length;
+    updateCharts();
+  });
+
+  updateCharts();
+</script>

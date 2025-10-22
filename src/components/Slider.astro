@@ -1,0 +1,188 @@
+---
+import CarteGare from "./cartes/CarteGare.astro";
+import CarteAccessibilite from "./cartes/CarteAccessibilite.astro";
+import CarteTourisme from "./cartes/CarteTourisme.astro";
+interface Props {
+  departements: any;
+  gares: any;
+  garesAvecTransports: any;
+  lieuxTouristiques?: any;
+}
+
+const { departements, gares, garesAvecTransports, lieuxTouristiques } =
+  Astro.props;
+
+const cartes = [
+  {
+    id: "gares",
+    title: "Nombre de gares par département",
+    description: "Distribution géographique des gares SNCF en France",
+  },
+  {
+    id: "accessibilite",
+    title: "Accessibilité multimodale des gares",
+    description: "Correspondances transports en commun à proximité",
+  },
+  {
+    id: "tourisme",
+    title: "Gares et lieux touristiques",
+    description: "Proximité des gares aux sites touristiques majeurs",
+  },
+];
+---
+
+<div class="max-w-6xl mx-auto px-4">
+  <div class="text-center mb-8">
+    <h2 class="text-3xl font-bold text-gray-900 mb-4">La Réalité du Terrain</h2>
+    <p class="text-lg text-gray-600">
+      Explorez la France ferroviaire sous 3 angles différents
+    </p>
+  </div>
+
+  <div class="flex items-center justify-between mb-6">
+    <h3 id="carte-title" class="text-2xl font-semibold">
+      {cartes[0].title}
+    </h3>
+    <div class="flex gap-2">
+      <button
+        id="prev-btn"
+        class="p-2 rounded-lg bg-gray-200 hover:bg-gray-300 transition disabled:opacity-50"
+        disabled
+      >
+        ←
+      </button>
+      <button
+        id="next-btn"
+        class="p-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition"
+      >
+        →
+      </button>
+    </div>
+  </div>
+
+  <p id="carte-description" class="text-gray-600 mb-6">
+    {cartes[0].description}
+  </p>
+
+  <div class="flex gap-2 justify-center mb-8">
+    {
+      cartes.map((_, index) => (
+        <button
+          class="indicator h-2 rounded-full transition-all cursor-pointer"
+          data-index={index}
+          style={
+            index === 0
+              ? "width: 32px; background-color: #2563eb;"
+              : "width: 8px; background-color: #d1d5db;"
+          }
+        />
+      ))
+    }
+  </div>
+
+  <div class="bg-white rounded-xl shadow-xl p-6">
+    <div class="overflow-hidden">
+      <div
+        id="cartes-wrapper"
+        class="flex transition-transform duration-500 ease-in-out"
+        style="transform: translateX(0%);"
+      >
+        <div class="carte-slide flex-shrink-0 w-full">
+          <CarteGare departements={departements} gares={gares} />
+        </div>
+
+        <div class="carte-slide flex-shrink-0 w-full">
+          <CarteAccessibilite
+            departements={departements}
+            garesAvecTransports={garesAvecTransports}
+          />
+        </div>
+
+        <div class="carte-slide flex-shrink-0 w-full">
+          <CarteTourisme
+            departements={departements}
+            gares={gares}
+            lieuxTouristiques={lieuxTouristiques}
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="text-center mt-6 text-sm text-gray-500">
+    💡 Utilisez les flèches ← → pour naviguer
+  </div>
+</div>
+
+<script define:vars={{ cartes }}>
+  let currentIndex = 0;
+  const maxIndex = cartes.length - 1;
+
+  const wrapper = document.getElementById("cartes-wrapper");
+  const prevBtn = document.getElementById("prev-btn");
+  const nextBtn = document.getElementById("next-btn");
+  const title = document.getElementById("carte-title");
+  const description = document.getElementById("carte-description");
+  const indicators = document.querySelectorAll(".indicator");
+
+  function updateSlider() {
+
+    const offset = -currentIndex * 100;
+    wrapper.style.transform = `translateX(${offset}%)`;
+    title.textContent = cartes[currentIndex].title;
+    description.textContent = cartes[currentIndex].description;
+    prevBtn.disabled = currentIndex === 0;
+    nextBtn.disabled = currentIndex === maxIndex;
+    indicators.forEach((indicator, index) => {
+      if (index === currentIndex) {
+        indicator.style.width = "32px";
+        indicator.style.backgroundColor = "#2563eb";
+      } else {
+        indicator.style.width = "8px";
+        indicator.style.backgroundColor = "#d1d5db";
+      }
+    });
+  }
+
+  function nextSlide() {
+    if (currentIndex < maxIndex) {
+      currentIndex++;
+      updateSlider();
+    }
+  }
+
+  function prevSlide() {
+    if (currentIndex > 0) {
+      currentIndex--;
+      updateSlider();
+    }
+  }
+
+  function goToSlide(index) {
+    currentIndex = index;
+    updateSlider();
+  }
+
+  function attachEvents() {
+    prevBtn?.addEventListener("click", prevSlide);
+    nextBtn?.addEventListener("click", nextSlide);
+
+    indicators.forEach((indicator) => {
+      indicator.addEventListener("click", (e) => {
+        const index = parseInt(e.currentTarget.getAttribute("data-index"));
+        goToSlide(index);
+      });
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft") prevSlide();
+      if (e.key === "ArrowRight") nextSlide();
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", attachEvents);
+  } else {
+    attachEvents();
+  }
+</script>

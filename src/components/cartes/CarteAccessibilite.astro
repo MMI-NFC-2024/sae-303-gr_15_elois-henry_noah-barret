@@ -1,0 +1,81 @@
+---
+
+---
+
+<div class="flex flex-col items-center">
+  <h2 class="text-2xl font-bold mb-2 text-center">
+    Accessibilité des gares
+  </h2>
+  <p class="text-gray-600 mb-6 text-center max-w-xl">
+    Chaque point représente une gare. La taille du cercle indique le nombre
+    d'arrêts de transport (bus, métro, etc.) à moins de 500 mètres.
+  </p>
+  <p>Survolez la carte pour découvrir les détails de chaque gare.</p>
+  <div id="map-access" class="w-full flex justify-center"></div>
+</div>
+
+<script type="module" client:load>
+  import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+  import * as Plot from "https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/+esm";
+
+  const departements = await d3.json(
+    "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements.geojson"
+  );
+  const gares = await d3.json(
+    "https://data.sncf.com/api/explore/v2.1/catalog/datasets/gares-de-voyageurs/exports/geojson"
+  );
+
+  const arrets = await d3.csv(
+    "https://static.data.gouv.fr/resources/arrets-de-transport-en-france/20250909-084250/gtfs-stops-france-export-2025-09-09.csv"
+  );
+
+  const arretsValides = arrets
+    .map((d) => ({
+      lat: +d.stop_lat,
+      lon: +d.stop_lon,
+    }))
+    .filter((d) => !isNaN(d.lat) && !isNaN(d.lon));
+
+  const garesValides = gares.features.filter(
+    (d) =>
+      d.geometry &&
+      Array.isArray(d.geometry.coordinates) &&
+      d.geometry.coordinates.length === 2
+  );
+  const estProche = (lon1, lat1, lon2, lat2, maxDist = 0.005) =>
+    Math.abs(lon1 - lon2) < maxDist && Math.abs(lat1 - lat2) < maxDist;
+
+    const garesAvecArrets = garesValides.map((g) => {
+    const [lon, lat] = g.geometry.coordinates;
+    const nb = arretsValides.filter((a) =>
+      estProche(lon, lat, a.lon, a.lat)
+    ).length;
+    return { nom: g.properties.libelle, lon, lat, nb };
+  });
+
+  const plot = Plot.plot({
+    projection: { type: "mercator", domain: departements },
+    color: {
+      type: "threshold",
+      domain: [5, 20, 50, 100],
+      range: ["#fee6ce", "#fdae6b", "#e6550d", "#a63603"],
+      legend: true,
+      label: "Arrêts à proximité",
+    },
+    marks: [
+      Plot.geo(departements, { fill: "#f0f0f0", stroke: "#999" }),
+      Plot.dot(garesAvecArrets, {
+        x: "lon",
+        y: "lat",
+        r: (d) => Math.sqrt(d.nb) * 2,
+        fill: "nb",
+        stroke: "white",
+        title: (d) => `${d.nom} — ${d.nb} arrêts à proximité`,
+      }),
+    ],
+    width: 800,
+    height: 600,
+  });
+
+  document.getElementById("map-access").appendChild(plot);
+</script>
