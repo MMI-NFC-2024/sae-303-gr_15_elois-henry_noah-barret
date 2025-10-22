@@ -1,0 +1,212 @@
+---
+import Layout from "../layouts/Layout.astro";
+// ADAPTEZ CE CHEMIN selon où vous avez mis le fichier JSON
+import garesData from "../assets/gare-de-voyageurs.json";
+
+const gares = garesData
+  .filter((g) => g.position_geographique?.lat && g.position_geographique?.lon)
+  .map((g) => ({
+    nom: g.nom,
+    lat: g.position_geographique.lat,
+    lon: g.position_geographique.lon,
+    codeinsee: g.codeinsee || "",
+    segment: g.segment_drg || "",
+  }));
+---
+
+<Layout>
+  <link
+    slot="head"
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+
+  <div class="max-w-7xl mx-auto">
+    <div class="mb-8">
+      <h1 class="text-4xl font-bold text-gray-900 mb-3">
+        🚂 Trouvez votre gare
+      </h1>
+      <p class="text-lg text-gray-600">
+        Recherchez parmi {gares.length} gares en France et localisez-les sur la carte
+        interactive
+      </p>
+    </div>
+
+    <div class="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-100">
+      <div class="relative">
+        <input
+          type="text"
+          id="search-input"
+          placeholder="Rechercher une gare (ex: Paris, Lyon, Marseille...)"
+          class="w-full px-5 py-4 text-base border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 focus:outline-none transition-all"
+          autocomplete="off"
+        />
+        <div
+          id="autocomplete-list"
+          class="hidden absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl max-h-96 overflow-y-auto z-50"
+        >
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100"
+    >
+      <div id="map" style="height: 600px; width: 100%;"></div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" is:inline
+  ></script>
+
+  <script define:vars={{ gares }}>
+    // Attendre que la page soit complètement chargée
+    document.addEventListener("DOMContentLoaded", function () {
+      console.log(`✅ ${gares.length} gares chargées`);
+
+      let map;
+      let markers = L.layerGroup();
+      let selectedIndex = -1;
+
+      // Initialiser la carte
+      try {
+        const mapElement = document.getElementById("map");
+        if (!mapElement) {
+          console.error("❌ Élément #map introuvable");
+          return;
+        }
+
+        map = L.map("map").setView([46.603354, 1.888334], 6);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          attribution: "© OpenStreetMap contributors",
+          maxZoom: 19,
+        }).addTo(map);
+
+        markers.addTo(map);
+
+        setTimeout(() => {
+          map.invalidateSize();
+          console.log("✅ Carte Leaflet initialisée et redimensionnée");
+        }, 200);
+      } catch (error) {
+        console.error("❌ Erreur d'initialisation:", error);
+        return;
+      }
+
+      const searchInput = document.getElementById("search-input");
+      const autocompleteList = document.getElementById("autocomplete-list");
+
+      if (!searchInput || !autocompleteList) {
+        console.error("❌ Éléments de recherche introuvables");
+        return;
+      }
+
+      searchInput.addEventListener("input", (e) => {
+        const value = e.target.value.toLowerCase().trim();
+        autocompleteList.innerHTML = "";
+        selectedIndex = -1;
+
+        if (value.length < 2) {
+          autocompleteList.classList.add("hidden");
+          return;
+        }
+
+        const filtered = gares
+          .filter((g) => g.nom.toLowerCase().includes(value))
+          .slice(0, 15);
+
+        if (filtered.length === 0) {
+          autocompleteList.innerHTML =
+            '<div class="p-4 text-center text-gray-500">Aucune gare trouvée</div>';
+          autocompleteList.classList.remove("hidden");
+          return;
+        }
+
+        filtered.forEach((gare) => {
+          const item = document.createElement("div");
+          item.className =
+            "px-5 py-3 hover:bg-indigo-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors";
+          item.innerHTML = `
+            <div class="font-semibold text-gray-900">${gare.nom}</div>
+            <div class="text-sm text-gray-500 mt-1">Code INSEE: ${gare.codeinsee}</div>
+          `;
+          item.addEventListener("click", () => selectGare(gare));
+          autocompleteList.appendChild(item);
+        });
+
+        autocompleteList.classList.remove("hidden");
+      });
+
+      searchInput.addEventListener("keydown", (e) => {
+        const items = autocompleteList.querySelectorAll(
+          'div[class*="cursor-pointer"]'
+        );
+
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+          updateSelection(items);
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          selectedIndex = Math.max(selectedIndex - 1, 0);
+          updateSelection(items);
+        } else if (e.key === "Enter" && selectedIndex >= 0) {
+          e.preventDefault();
+          items[selectedIndex].click();
+        } else if (e.key === "Escape") {
+          autocompleteList.classList.add("hidden");
+        }
+      });
+
+      function updateSelection(items) {
+        items.forEach((item, index) => {
+          if (index === selectedIndex) {
+            item.classList.add("bg-indigo-50");
+            item.scrollIntoView({ block: "nearest" });
+          } else {
+            item.classList.remove("bg-indigo-50");
+          }
+        });
+      }
+
+      function selectGare(gare) {
+        console.log("Gare sélectionnée:", gare.nom);
+
+        autocompleteList.classList.add("hidden");
+        searchInput.value = gare.nom;
+
+        markers.clearLayers();
+
+        const marker = L.marker([gare.lat, gare.lon]);
+
+        marker.bindPopup(`
+          <div style="padding: 12px;">
+            <div style="font-weight: bold; font-size: 16px; margin-bottom: 8px;">🚉 ${gare.nom}</div>
+            <div style="font-size: 14px; color: #6b7280;">
+              <div><span style="font-weight: 500;">Code INSEE:</span> ${gare.codeinsee}</div>
+              <div><span style="font-weight: 500;">Segment:</span> ${gare.segment}</div>
+              <div><span style="font-weight: 500;">Coordonnées:</span> ${gare.lat.toFixed(5)}, ${gare.lon.toFixed(5)}</div>
+            </div>
+          </div>
+        `);
+
+        marker.addTo(markers);
+        marker.openPopup();
+
+        map.flyTo([gare.lat, gare.lon], 13, {
+          duration: 1.5,
+        });
+      }
+
+      document.addEventListener("click", (e) => {
+        if (
+          !e.target.closest("#search-input") &&
+          !e.target.closest("#autocomplete-list")
+        ) {
+          autocompleteList.classList.add("hidden");
+        }
+      });
+    });
+  </script>
+</Layout>

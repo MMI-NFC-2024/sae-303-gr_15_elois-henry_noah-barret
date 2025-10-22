@@ -1,0 +1,182 @@
+---
+import Layout from "../layouts/Layout.astro";
+import tourismeText from "../assets/datatourisme-tour2.json?raw";
+import departementsText from "../assets/departements.geojson?raw";
+import garesText from "../assets/gares-de-voyageurs2.geojson?raw";
+
+const tourismeData = JSON.parse(tourismeText);
+const departementsData = JSON.parse(departementsText);
+const garesData = JSON.parse(garesText);
+---
+
+<Layout>
+  <main class="max-w-6xl mx-auto p-8">
+    <h1 class="text-2xl font-bold mb-4 text-gray-800">
+      Lieux touristiques et gares en France
+    </h1>
+
+    <div class="mb-4">
+      <label for="affichage" class="block mb-1 font-medium text-gray-700">
+        Choisir les éléments à afficher :
+      </label>
+      <select id="affichage" class="border rounded-md px-3 py-2">
+        <option value="both" selected>Gares + Lieux touristiques</option>
+        <option value="gares">Gares uniquement</option>
+        <option value="tourisme">Lieux touristiques uniquement</option>
+      </select>
+    </div>
+
+
+    <div class="relative">
+      <div
+        id="map-legend"
+        class="absolute top-2 left-2 bg-white/90 backdrop-blur-sm border border-gray-300 rounded-md text-sm text-gray-700 px-3 py-2 shadow-md flex flex-col gap-1"
+      >
+        <div class="flex items-center gap-2">
+          <span class="text-[#e63946] text-lg leading-none">▲</span>
+          <span>Lieux touristiques</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-[#0077b6] text-lg leading-none">●</span>
+          <span>Gares</span>
+        </div>
+      </div>
+
+      <div
+        id="map-container"
+        data-tourisme={JSON.stringify(tourismeData)}
+        data-departements={JSON.stringify(departementsData)}
+        data-gares={JSON.stringify(garesData)}
+      >
+      </div>
+    </div>
+  </main>
+
+  <script type="module">
+    import * as Plot from "https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/+esm";
+
+    const el = document.getElementById("map-container");
+    const select = document.getElementById("affichage");
+
+    const data = JSON.parse(el.dataset.tourisme || "[]");
+    const departements = JSON.parse(el.dataset.departements || "{}");
+    const gares = JSON.parse(el.dataset.gares || "{}");
+
+    let lieux = data
+      .map((d) => ({
+        nom: d.Nom_du_POI || d.Nom_du_POT || d.nom || "Lieu touristique",
+        categorie: d.Categorie || "Non renseigné",
+        commune: d.Commune || "Inconnue",
+        code_postal: d.Code_postal || "",
+        lon: +d.Longitude || +d["coordonnees.lon"] || +d["Coordonnées.lon"],
+        lat: +d.Latitude || +d["coordonnees.lat"] || +d["Coordonnées.lat"],
+      }))
+      .filter(
+        (d) =>
+          d.lat && d.lon && d.lat > 41 && d.lat < 52 && d.lon > -6 && d.lon < 10
+      );
+
+    const garesClean = (gares.features || [])
+      .filter(
+        (f) =>
+          f.geometry &&
+          f.geometry.type === "Point" &&
+          Array.isArray(f.geometry.coordinates)
+      )
+      .map((f) => ({
+        nom: f.properties?.nom || f.properties?.NOM_GARE || "Gare",
+        lon: f.geometry.coordinates[0],
+        lat: f.geometry.coordinates[1],
+      }))
+      .filter(
+        (d) =>
+          d.lat && d.lon && d.lat > 41 && d.lat < 52 && d.lon > -6 && d.lon < 10
+      );
+
+    function distanceKm(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = ((lat2 - lat1) * Math.PI) / 180;
+      const dLon = ((lon2 - lon1) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos((lat1 * Math.PI) / 180) *
+          Math.cos((lat2 * Math.PI) / 180) *
+          Math.sin(dLon / 2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    lieux = lieux.map((lieu) => {
+      let closest = null;
+      let minDistance = Infinity;
+      for (const gare of garesClean) {
+        const dist = distanceKm(lieu.lat, lieu.lon, gare.lat, gare.lon);
+        if (dist < minDistance) {
+          minDistance = dist;
+          closest = gare;
+        }
+      }
+      return {
+        ...lieu,
+        gare_proche: closest ? closest.nom : "Aucune gare trouvée",
+        distance_gare: minDistance.toFixed(1),
+      };
+    });
+
+    function renderMap(mode = "both") {
+      el.innerHTML = "";
+
+      const marks = [
+        Plot.geo(departements, {
+          fill: "#f9fafb",
+          stroke: "#bfc6cd",
+          strokeWidth: 0.5,
+        }),
+      ];
+
+      if (mode === "both" || mode === "tourisme") {
+        marks.push(
+          Plot.dot(lieux, {
+            x: "lon",
+            y: "lat",
+            r: 2,
+            fill: "#e63946",
+            symbol: "triangle",
+            opacity: 0.8,
+            stroke: "white",
+            strokeWidth: 0.25,
+            title: (d) =>
+              `${d.nom}\n${d.categorie}\n${d.commune} (${d.code_postal})\n\nGare la plus proche : ${d.gare_proche}\nDistance : ${d.distance_gare} km`,
+          })
+        );
+      }
+
+      if (mode === "both" || mode === "gares") {
+        marks.push(
+          Plot.dot(garesClean, {
+            x: "lon",
+            y: "lat",
+            r: 2,
+            fill: "#0077b6",
+            opacity: 0.8,
+            title: (d) => `Gare : ${d.nom}`,
+          })
+        );
+      }
+
+      const map = Plot.plot({
+        width: 900,
+        height: 800,
+        projection: { type: "mercator", domain: departements },
+        inset: 8,
+        marks,
+        style: { background: "#ffffff" },
+      });
+
+      el.append(map);
+    }
+
+    renderMap("both");
+    select.addEventListener("change", (e) => renderMap(e.target.value));
+  </script>
+</Layout>

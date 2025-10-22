@@ -6,7 +6,7 @@
 - Nom binome : Barret 
 - Prénom binome : Noah 
 
-# Remarques :
+# Remarques : Pour la réalisation de ce site, nous avons choisis de mettre nos graphiques en avant sous la forme de slides. Nous avons ajouté des filtres sur certains pour les rendres plus précis et interactifs. Le slide comportant les cartes est néanmoins assez long à charger du fait de la grosseur des bases de données et du code utilisé pour les filtre ou la superposition de données. 
 
 Décrire ici les éléments techniques remarquables de votre site (interactions, navigation, responsive, accessibilité...).
 Idéalement avec des liens vers votre site et/ou [votre code](https://github.blog/news-insights/product-news/relative-links-in-markup-files/)

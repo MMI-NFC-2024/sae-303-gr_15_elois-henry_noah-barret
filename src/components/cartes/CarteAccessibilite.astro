@@ -1,81 +1,147 @@
 ---
-
 ---
-
 <div class="flex flex-col items-center">
-  <h2 class="text-2xl font-bold mb-2 text-center">
-    Accessibilité des gares
-  </h2>
+  <h2 class="text-2xl font-bold mb-2 text-center">Accessibilité des gares</h2>
   <p class="text-gray-600 mb-6 text-center max-w-xl">
     Chaque point représente une gare. La taille du cercle indique le nombre
     d'arrêts de transport (bus, métro, etc.) à moins de 500 mètres.
   </p>
-  <p>Survolez la carte pour découvrir les détails de chaque gare.</p>
-  <div id="map-access" class="w-full flex justify-center"></div>
+
+  <div class="flex gap-4 mb-8">
+    <select
+      id="transport-filter"
+      class="border border-gray-300 rounded px-4 py-2 text-sm"
+    >
+      <option value="Tous">Tous</option>
+      <option value="Métro/RER">Métro/RER</option>
+      <option value="Tramway">Tramway</option>
+      <option value="Bus">Bus</option>
+    </select>
+  </div>
+
+  <p class="mb-6 text-gray-600">
+    Survolez la carte pour découvrir les détails.
+  </p>
+  <div id="map-access"></div>
 </div>
 
 <script type="module" client:load>
   import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
   import * as Plot from "https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/+esm";
 
-  const departements = await d3.json(
-    "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements.geojson"
-  );
-  const gares = await d3.json(
-    "https://data.sncf.com/api/explore/v2.1/catalog/datasets/gares-de-voyageurs/exports/geojson"
-  );
+  const $ = (id) => document.getElementById(id);
+  const transportFilter = $("transport-filter");
+  const mapContainer = $("map-access");
 
-  const arrets = await d3.csv(
-    "https://static.data.gouv.fr/resources/arrets-de-transport-en-france/20250909-084250/gtfs-stops-france-export-2025-09-09.csv"
-  );
+  // Chargement des données
+  const [departements, gares, arrets] = await Promise.all([
+    d3.json(
+      "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements.geojson"
+    ),
+    d3.json(
+      "https://data.sncf.com/api/explore/v2.1/catalog/datasets/gares-de-voyageurs/exports/geojson"
+    ),
+    d3.csv(
+      "https://static.data.gouv.fr/resources/arrets-de-transport-en-france/20250909-084250/gtfs-stops-france-export-2025-09-09.csv"
+    ),
+  ]);
 
-  const arretsValides = arrets
-    .map((d) => ({
-      lat: +d.stop_lat,
-      lon: +d.stop_lon,
+  // Déterminer le type de transport
+  const getType = (name, dataset) => {
+    const n = name.toLowerCase(),
+      d = dataset.toLowerCase();
+    if (d.includes("metro") || n.match(/\bm\d{1,2}\b/)) return "Métro";
+    if (d.includes("rer") || n.includes("rer")) return "RER";
+    if (d.includes("tram") || n.match(/\bt\d{1,2}\b/)) return "Tramway";
+    return "Bus";
+  };
+
+  // Traiter les arrêts
+  const arretsAvecType = arrets
+    .map((a) => ({
+      lat: +a.stop_lat,
+      lon: +a.stop_lon,
+      type: getType(a.stop_name || "", a.dataset_id || ""),
     }))
-    .filter((d) => !isNaN(d.lat) && !isNaN(d.lon));
+    .filter((a) => !isNaN(a.lat));
 
-  const garesValides = gares.features.filter(
-    (d) =>
-      d.geometry &&
-      Array.isArray(d.geometry.coordinates) &&
-      d.geometry.coordinates.length === 2
-  );
-  const estProche = (lon1, lat1, lon2, lat2, maxDist = 0.005) =>
-    Math.abs(lon1 - lon2) < maxDist && Math.abs(lat1 - lat2) < maxDist;
+  const proche = (lon1, lat1, lon2, lat2) =>
+    Math.abs(lon1 - lon2) < 0.005 && Math.abs(lat1 - lat2) < 0.005;
+  const garesAvecTransports = gares.features
+    .filter((g) => g.geometry?.coordinates?.length === 2)
+    .map((g) => {
+      const [lon, lat] = g.geometry.coordinates;
 
-    const garesAvecArrets = garesValides.map((g) => {
-    const [lon, lat] = g.geometry.coordinates;
-    const nb = arretsValides.filter((a) =>
-      estProche(lon, lat, a.lon, a.lat)
-    ).length;
-    return { nom: g.properties.libelle, lon, lat, nb };
-  });
+      // Compter les transports proches
+      const p = arretsAvecType.filter((a) => proche(lon, lat, a.lon, a.lat));
+      const metro = p.filter((a) => a.type === "Métro").length;
+      const rer = p.filter((a) => a.type === "RER").length;
+      const tramway = p.filter((a) => a.type === "Tramway").length;
+      const bus = p.filter((a) => a.type === "Bus").length;
 
-  const plot = Plot.plot({
-    projection: { type: "mercator", domain: departements },
-    color: {
-      type: "threshold",
-      domain: [5, 20, 50, 100],
-      range: ["#fee6ce", "#fdae6b", "#e6550d", "#a63603"],
-      legend: true,
-      label: "Arrêts à proximité",
-    },
-    marks: [
-      Plot.geo(departements, { fill: "#f0f0f0", stroke: "#999" }),
-      Plot.dot(garesAvecArrets, {
-        x: "lon",
-        y: "lat",
-        r: (d) => Math.sqrt(d.nb) * 2,
-        fill: "nb",
-        stroke: "white",
-        title: (d) => `${d.nom} — ${d.nb} arrêts à proximité`,
-      }),
-    ],
-    width: 800,
-    height: 600,
-  });
+      return {
+        nom: g.properties.libelle,
+        lon,
+        lat,
+        metro,
+        rer,
+        tramway,
+        bus,
+        total: metro + rer + tramway + bus,
+        coordinates: [lon, lat],
+      };
+    });
 
-  document.getElementById("map-access").appendChild(plot);
+  // Fonction de rendu
+  function renderMap() {
+    const transport = transportFilter.value;
+
+    // Filtrer les gares selon le type de transport
+    const filtered = garesAvecTransports.filter((g) => {
+      if (transport === "Tous") return g.total > 0;
+      if (transport === "Métro/RER") return g.metro + g.rer > 0;
+      if (transport === "Tramway") return g.tramway > 0;
+      return g.bus > 0;
+    });
+
+    // Afficher la carte
+    mapContainer.innerHTML = "";
+    mapContainer.appendChild(
+      Plot.plot({
+        projection: { type: "mercator", domain: departements },
+        color: {
+          type: "threshold",
+          domain: [5, 20, 50, 100],
+          range: ["#feedde", "#fdbe85", "#fd8d3c", "#e6550d", "#a63603"],
+          legend: true,
+          label: "Accessibilité (arrêts < 500m)",
+        },
+        marks: [
+          Plot.geo(departements, { fill: "#f0f0f0", stroke: "#666" }),
+          Plot.dot(filtered, {
+            x: (d) => d.coordinates[0],
+            y: (d) => d.coordinates[1],
+            r: (d) => Math.max(4, Math.sqrt(d.total) * 3),
+            fill: "total",
+            stroke: "black",
+            strokeWidth: 0.5,
+            tip: true,
+            channels: {
+              Gare: "nom",
+              Total: "total",
+              "Métro/RER": (d) => d.metro + d.rer,
+              Tramway: "tramway",
+              Bus: "bus",
+            },
+          }),
+        ],
+        width: 700,
+        height: 600,
+      })
+    );
+  }
+
+  // Event listener
+  transportFilter.addEventListener("change", renderMap);
+  renderMap();
 </script>
