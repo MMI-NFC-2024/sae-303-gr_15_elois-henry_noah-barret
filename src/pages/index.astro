@@ -45,7 +45,7 @@ const aggregated = getDataForTrajetServer(initialTrajet);
           Entre urgence climatique et réalité du terrain
         </p>
         <p class="text-base text-[#666] mb-10 leading-relaxed max-w-lg">
-          Le train s’impose comme la solution la plus sobre pour voyager.
+          Le train s'impose comme la solution la plus sobre pour voyager.
           Pourtant, son usage reste marginal face à la voiture. Ce projet
           explore pourquoi, à travers des données concrètes et une analyse
           visuelle du territoire.
@@ -195,7 +195,7 @@ const aggregated = getDataForTrajetServer(initialTrajet);
     }
     (async () => {
       try {
-        const clientModule = await import("/src/script/plotClient.js");
+        const clientModule = await import("/plotClient.js");
         function renderChart(trajet) {
           const data = getDataForTrajet(trajet);
           clientModule.renderChart(chartContainer, data, {
