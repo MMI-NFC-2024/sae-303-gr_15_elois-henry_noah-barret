@@ -13,9 +13,8 @@ import CarteAccessibilite from "../components/cartes/CarteAccessibilite.astro";
     </h1>
 
     <p class="text-center text-lg text-[#3d3d3d] max-w-3xl mx-auto mb-12">
-      Explorez à travers trois cartes interactives l'état du réseau ferroviaire
-      français, son accessibilité en transports en commun, et sa proximité avec
-      les lieux culturels.
+      Explorez à travers deux cartes interactives l'état du réseau ferroviaire
+      français et son accessibilité en transports en commun.
     </p>
 
     <section
@@ -85,7 +84,38 @@ import CarteAccessibilite from "../components/cartes/CarteAccessibilite.astro";
         <button
           class="dot w-3 h-3 rounded-full bg-[#d4d1cc] transition-all duration-300"
           data-index="1"></button>
-
+      </div>
+    </section>
+    <section class="max-w-6xl mx-auto mt-12 px-4 sm:px-6">
+      <div class="grid md:grid-cols-2 gap-8">
+        <div
+          class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8"
+        >
+          <p class="text-base sm:text-lg text-[#3d3d3d] leading-relaxed">
+            Grâce à cette première carte interactive, nous pouvons voir que le
+            nombre de gares n'est pas réparti de manière équivalente dans chaque
+            département. Cette carte révèle des disparités importantes :
+            certains départements concentrent plusieurs dizaines de gares,
+            principalement en Île-de-France et dans les grandes métropoles
+            régionales, alors que d'autres territoires, souvent ruraux ou
+            montagneux, en comptent moins d'une dizaine. Cette répartition
+            inégale pose la question de l'accessibilité du transport ferroviaire
+            sur l'ensemble du territoire français, et donc l'accessibilité du
+            tourisme en train en France.
+          </p>
+        </div>
+        <div
+          class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8"
+        >
+          <p class="text-base sm:text-lg text-[#3d3d3d] leading-relaxed">
+            Toutes les gares ne sont pas desservies de la même manière. Dans les
+            grandes villes, on trouve souvent une offre de transport très (
+            voire trop) complète (métro, tram, bus…), alors que dans les zones
+            rurales ou en périphérie, les connexions sont souvent limitées. Cela
+            rend le train moins pratique, alors qu'il pourrait être une vraie
+            alternative écologique pour le tourisme.
+          </p>
+        </div>
       </div>
     </section>
   </main>
@@ -105,7 +135,6 @@ import CarteAccessibilite from "../components/cartes/CarteAccessibilite.astro";
       const maxIndex = 2;
 
       function updateSlide() {
-
         slider.style.transform = `translateX(-${index * 100}%)`;
 
         dots.forEach((dot, i) => {

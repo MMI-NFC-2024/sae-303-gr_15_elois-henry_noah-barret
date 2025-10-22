@@ -104,41 +104,62 @@
       return g.bus > 0;
     });
 
-    // Afficher la carte
-    mapContainer.innerHTML = "";
-    mapContainer.appendChild(
-      Plot.plot({
-        projection: { type: "mercator", domain: departements },
-        color: {
-          type: "threshold",
-          domain: [5, 20, 50, 100],
-          range: ["#feedde", "#fdbe85", "#fd8d3c", "#e6550d", "#a63603"],
-          legend: true,
-          label: "Accessibilité (arrêts < 500m)",
-        },
-        marks: [
-          Plot.geo(departements, { fill: "#f0f0f0", stroke: "#666" }),
-          Plot.dot(filtered, {
-            x: (d) => d.coordinates[0],
-            y: (d) => d.coordinates[1],
-            r: (d) => Math.max(4, Math.sqrt(d.total) * 3),
-            fill: "total",
-            stroke: "black",
-            strokeWidth: 0.5,
-            tip: true,
-            channels: {
-              Gare: "nom",
-              Total: "total",
-              "Métro/RER": (d) => d.metro + d.rer,
-              Tramway: "tramway",
-              Bus: "bus",
-            },
-          }),
-        ],
-        width: 700,
-        height: 600,
-      })
-    );
+    // Afficher la carte responsively
+    function getSize() {
+      const w = Math.max(300, Math.min(mapContainer.clientWidth || 700, 1000));
+      const h = Math.round(w * 0.75);
+      return { w, h };
+    }
+
+    function renderMapResponsive() {
+      const { w, h } = getSize();
+      mapContainer.innerHTML = "";
+      mapContainer.appendChild(
+        Plot.plot({
+          projection: { type: "mercator", domain: departements },
+          color: {
+            type: "threshold",
+            domain: [5, 20, 50, 100],
+            range: ["#feedde", "#fdbe85", "#fd8d3c", "#e6550d", "#a63603"],
+            legend: true,
+            label: "Accessibilité (arrêts < 500m)",
+          },
+          marks: [
+            Plot.geo(departements, { fill: "#f0f0f0", stroke: "#666" }),
+            Plot.dot(filtered, {
+              x: (d) => d.coordinates[0],
+              y: (d) => d.coordinates[1],
+              r: (d) => Math.max(4, Math.sqrt(d.total) * 3),
+              fill: "total",
+              stroke: "black",
+              strokeWidth: 0.5,
+              tip: true,
+              channels: {
+                Gare: "nom",
+                Total: "total",
+                "Métro/RER": (d) => d.metro + d.rer,
+                Tramway: "tramway",
+                Bus: "bus",
+              },
+            }),
+          ],
+          width: w,
+          height: h,
+        })
+      );
+    }
+
+    function debounce(fn, wait = 150) {
+      let t;
+      return function () {
+        clearTimeout(t);
+        const args = arguments;
+        t = setTimeout(function () { fn.apply(null, args); }, wait);
+      };
+    }
+
+    renderMapResponsive();
+    window.addEventListener("resize", debounce(renderMapResponsive, 150));
   }
 
   // Event listener

@@ -10,19 +10,13 @@
     Cette carte montre le nombre de gares par département. Plus la couleur est
     foncée, plus il y a de gares.
   </p>
-  <div id="map-gares" class="w-full flex justify-center"></div>
+  <div id="map-gares" class="w-full max-w-4xl mx-auto"></div>
   <p class="italic m-5">
     Source :
     https://www.data.gouv.fr/api/1/datasets/r/cbacca02-6925-4a46-aab6-7194debbb9b7
   </p>
 </div>
-<p class="w-full text-gray-600 m-6 max-w-xl">
-  Cette carte, représentant les gares de France, met en lumière leur répartition
-  géographique et leur densité par département. Nous remarquons alors rapidement
-  que cette répartition est inégale, avec certaines régions bénéficiant d'un
-  maillage ferroviaire dense, tandis que d'autres sont presque dépourvues de
-  gares.
-</p>
+
 
 <script type="module" client:load>
   import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
@@ -59,25 +53,49 @@
     })),
   };
 
-  const plot = Plot.plot({
-    projection: { type: "mercator", domain: departements },
-    color: {
-      scheme: "YlOrRd",
-      legend: true,
-      label: "Nombre de gares",
-      type: "sqrt",
-    },
-    marks: [
-      Plot.geo(departementsEnrichis.features, {
-        fill: (d) => d.properties.nbGares,
-        stroke: "white",
-        strokeWidth: 1,
-        title: (d) => `${d.properties.nom} : ${d.properties.nbGares} gare(s)`,
-      }),
-    ],
-    width: 800,
-    height: 600,
-  });
+  const container = document.getElementById("map-gares");
 
-  document.getElementById("map-gares").appendChild(plot);
+  function getSize() {
+    const w = Math.max(300, Math.min(container.clientWidth || 800, 1000));
+    const h = Math.round(w * 0.75);
+    return { w, h };
+  }
+
+  function renderPlot() {
+    const { w, h } = getSize();
+    const plot = Plot.plot({
+      projection: { type: "mercator", domain: departements },
+      color: {
+        scheme: "YlOrRd",
+        legend: true,
+        label: "Nombre de gares",
+        type: "sqrt",
+      },
+      marks: [
+        Plot.geo(departementsEnrichis.features, {
+          fill: (d) => d.properties.nbGares,
+          stroke: "white",
+          strokeWidth: 1,
+          title: (d) => `${d.properties.nom} : ${d.properties.nbGares} gare(s)`,
+        }),
+      ],
+      width: w,
+      height: h,
+    });
+
+    container.innerHTML = "";
+    container.appendChild(plot);
+  }
+
+  function debounce(fn, wait = 150) {
+    let t;
+    return function () {
+      clearTimeout(t);
+      const args = arguments;
+      t = setTimeout(function () { fn.apply(null, args); }, wait);
+    };
+  }
+
+  renderPlot();
+  window.addEventListener("resize", debounce(renderPlot, 150));
 </script>

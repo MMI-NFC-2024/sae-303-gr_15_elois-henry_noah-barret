@@ -6,7 +6,7 @@ import "../styles/global.css";
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -20,47 +20,85 @@ import "../styles/global.css";
   </head>
   <body>
     <header class="bg-white/80 backdrop-blur-sm shadow-sm sticky top-0 z-50">
-      <div class="max-w-5xl mx-auto p-8 flex items-center justify-center">
-        <nav aria-label="Main navigation">
-          <ul class="flex flex-col md:flex-row gap-3 md:gap-15 items-center">
-            <li>
-              <a
-                href="/"
-                class="text-gray-700 hover:text-indigo-600 transition-colors"
-                >Accueil</a
-              >
-            </li>
+      <div
+        class="max-w-5xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between"
+      >
+        <a href="/" class="text-lg font-bold">Le Pari du Train</a>
+
+        <button
+          id="navToggle"
+          class="sm:hidden p-2 rounded-md bg-white border"
+          aria-label="Ouvrir le menu"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="w-6 h-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 6h16M4 12h16M4 18h16"></path>
+          </svg>
+        </button>
+
+        <nav id="mainNav" aria-label="Main navigation" class="hidden sm:block">
+          <ul class="flex gap-6 items-center text-sm">
             <li>
               <a
                 href="/sliderCarte"
                 class="text-gray-700 hover:text-indigo-600 transition-colors"
-                >Le réseau ferroviaire actuel</a
+                >Transports en communs</a
               >
             </li>
             <li>
               <a
                 href="/tourisme"
                 class="text-gray-700 hover:text-indigo-600 transition-colors"
-                >Le tourisme près des gares
-              </a>
+                >Activités culturelles</a
+              >
             </li>
             <li>
               <a
                 href="/leaflet"
                 class="text-gray-700 hover:text-indigo-600 transition-colors"
-                >Trouvez votre gare
-              </a>
+                >Trouvez votre gare</a
+              >
             </li>
             <li>
               <a
                 href="/trajets"
                 class="text-gray-700 hover:text-indigo-600 transition-colors"
-                >Réagissez
-              </a>
+                >Réagissez</a
+              >
             </li>
           </ul>
         </nav>
       </div>
+      <div id="mobileNav" class="sm:hidden hidden px-4 pb-4">
+        <nav>
+          <ul class="flex flex-col gap-3">
+            <li><a href="/" class="block py-2">Accueil</a></li>
+            <li><a href="/sliderCarte" class="block py-2">Réseau</a></li>
+            <li><a href="/tourisme" class="block py-2">Tourisme</a></li>
+            <li>
+              <a href="/leaflet" class="block py-2">Trouvez votre gare</a>
+            </li>
+            <li><a href="/trajets" class="block py-2">Réagissez</a></li>
+          </ul>
+        </nav>
+      </div>
+      <script>
+        const toggle = document.getElementById("navToggle");
+        const mobileNav = document.getElementById("mobileNav");
+        toggle?.addEventListener("click", () => {
+          if (!mobileNav) return;
+          mobileNav.classList.toggle("hidden");
+        });
+      </script>
     </header>
     <main class="mx-auto px-4 py-6">
       <slot />
@@ -72,5 +110,33 @@ import "../styles/global.css";
         © {new Date().getFullYear()} Noah Barret et Eloïs Henry. Tous droits réservés.
       </div>
     </footer>
+    <script>
+      // Fade-in sections observer: add 'fade-in-section' to main children if missing
+      (function () {
+        const main = document.querySelector("main");
+        if (!main) return;
+        const children = Array.from(main.children);
+        children.forEach((el) => {
+          if (!el.classList.contains("fade-in-section")) {
+            el.classList.add("fade-in-section");
+          }
+        });
+
+        const io = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add("visible");
+              } else {
+                entry.target.classList.remove("visible");
+              }
+            });
+          },
+          { threshold: 0.12 }
+        );
+
+        children.forEach((el) => io.observe(el));
+      })();
+    </script>
   </body>
 </html>

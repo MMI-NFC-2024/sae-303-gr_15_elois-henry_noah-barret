@@ -9,17 +9,48 @@ const trajetsData = ((_raw as any)?.default ?? (_raw as any)) || [];
 ---
 
 <Layout>
-  <main class="max-w-6xl mx-auto p-8">
-    <h1 class="text-3xl font-bold mb-6 text-gray-800">
-      Comparaison train vs voiture
-    </h1>
-    <p class="text-gray-700 mb-8">
-      Cette visualisation compare les trajets types en France selon deux
-      indicateurs : la <strong>durée moyenne</strong> (en heures) et le <strong
-        >coût moyen</strong
-      > (en euros).
-    </p>
-
-    <PlotFigureTrajets data={trajetsData} />
+  <main class="min-h-screen bg-gradient-to-b from-[#f9f8f6] to-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+      <!-- Header -->
+      <div class="text-center mb-8 sm:mb-12">
+        <h1
+          class="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4"
+        >
+          Train vs Voiture
+        </h1>
+        <p class="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+          Comparaison des trajets types en France selon la durée et le coût
+        </p>
+      </div>
+      <div
+        class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sm:p-8 mb-8"
+      >
+        <p class="text-gray-700 leading-relaxed text-base sm:text-lg">
+          Cette visualisation compare les trajets selon deux indicateurs : la <strong
+            >durée moyenne</strong
+          > (en heures) et le <strong>coût moyen</strong> (en euros). Explorez les
+          différences entre le train et la voiture pour les principaux trajets français.
+        </p>
+      </div>
+      <div
+        class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
+      >
+        <div class="border-b border-gray-200 bg-[#f9f8f6] px-6 py-4">
+          <h2 class="text-xl font-semibold text-gray-900">
+            Analyse comparative
+          </h2>
+        </div>
+        <div class="p-6 sm:p-8">
+          <PlotFigureTrajets data={trajetsData} />
+        </div>
+      </div>
+    </div>
+    <div
+      class="bg-white rounded-2xl max-w-2xl mx-auto text-center shadow-sm border border-gray-200 p-6 sm:p-8 mb-8"
+    >
+      <p class="text-gray-700 leading-relaxed text-base sm:text-lg">
+        Ces graphiques nous font nous rendre compte que sur une grande partie des trajets, le train est plus rapide que la voiture, et souvent moins cher. Cependant, pour les trajets plus courts, la voiture reste compétitive en termes de coût et de temps. Hors, nous parlons sur ce site de trajet en train pour le <strong>tourisme </strong>, donc en général de longs trajets. Cette analyse met en lumière l'importance du développement du réseau ferroviaire pour encourager un mode de transport plus durable dans le tourisme.
+      </p>
+    </div>
   </main>
 </Layout>

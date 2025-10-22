@@ -16,3 +16,49 @@ select,
 button {
   font-family: inherit;
 }
+
+html {
+  font-size: 16px;
+}
+@media (max-width: 640px) {
+  html {
+    font-size: 15px;
+  }
+}
+@media (max-width: 420px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+img,
+video,
+figure {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+button,
+a {
+  touch-action: manipulation;
+}
+
+.plot-figure,
+.plot-container {
+  width: 100%;
+  overflow: hidden;
+}
+
+
+.fade-in-section {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 1.2s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fade-in-section.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
